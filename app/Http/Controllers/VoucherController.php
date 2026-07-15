@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Actions\Voucher\ConfirmVoucherAction;
 use App\Actions\Voucher\CancelVoucherAction;
 use App\Actions\BOM\CalculateBOMCostAction;
+use App\Actions\BOM\GetBOMTreeAction;
 use App\Services\StockService;
 use App\Http\Requests\ConfirmVoucherRequest;
 use App\Exceptions\CustomException;
@@ -38,6 +39,16 @@ class VoucherController extends Controller
     }
 
     public function bomCost(int $productId, CalculateBOMCostAction $action): JsonResponse
+    {
+        try {
+            $costData = $action->execute($productId);
+            return response()->json($costData);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], $e->getCode() ?: 422);
+        }
+    }
+
+      public function bomTree(int $productId, GetBOMTreeAction $action): JsonResponse
     {
         try {
             $costData = $action->execute($productId);

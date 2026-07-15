@@ -12,7 +12,8 @@ class BOMService
 
     public function __construct(
         private BOMRepositoryInterface $bomRepo
-    ) {}
+    ) {
+    }
 
     public function calculateCost(int $productId): float
     {
@@ -46,4 +47,66 @@ class BOMService
         }
         Cache::forget("bom_cost_{$productId}");
     }
+
+    public function getBOMTree(int $productId): array
+    {
+        $product = Product::find($productId);
+        if (!$product) {
+            throw new \Exception("محصول {$productId} یافت نشد.");
+        }
+
+        $tree = $this->bomRepo->loadBOMTree($productId);
+        return $this->buildTreeWithCost($product, $tree, 1);
+    }
+
+    private function buildTreeWithCost(Product $product, array $childrenData, float $quantity): array
+    {
+        $children = [];
+        $childrenTotalCost = 0;
+
+        foreach ($childrenData as $branch) {
+            /** @var \App\Models\BOM $bom */
+            $bom = $branch['bom'];
+            $childProduct = $bom->childProduct;
+
+            $childNode = $this->buildTreeWithCost(
+                $childProduct,
+                $branch['children'],
+                $bom->quantity
+            );
+
+            // هزینه‌ی هر واحد از محصول فرزند (قیمت پایه + هزینه‌ی زیرمجموعه‌ها)
+            if (!empty($branch['children'])) {
+                $childUnitCost = $this->calculateTreeCost($branch['children']);
+            } else {
+                $childUnitCost = $childProduct->base_price ?? 0; // برگ: هزینه برابر base_price
+            }
+            $branchTotalCost = $bom->quantity * $childUnitCost;
+
+            $children[] = [
+                'product_id' => $childProduct->id,
+                'product_name' => $childProduct->name,
+                'unit' => $childProduct->unit,
+                'base_price' => $childProduct->base_price,
+                'quantity' => $bom->quantity,
+                'unit_cost' => $childUnitCost,
+                'branch_total_cost' => $branchTotalCost,
+                'children' => $childNode['children'] ?? [],
+            ];
+
+            $childrenTotalCost += $branchTotalCost;
+        }
+
+        return [
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'unit' => $product->unit,
+            'base_price' => $product->base_price,
+            'quantity' => $quantity,
+            'children_total_cost' => $childrenTotalCost,
+            'total_cost' => $childrenTotalCost,
+            'children' => $children,
+        ];
+    }
+
 }
