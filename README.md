@@ -1,59 +1,339 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Inventory & BOM Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A modular Laravel application for managing warehouse operations, Bill of Materials (BOM), and inventory vouchers.
 
-## About Laravel
+The project follows **Clean Architecture** principles by separating application logic, business rules, and data access into independent layers, making the system scalable, maintainable, and easy to test.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Bill of Materials (BOM)
 
-## Learning Laravel
+- Create and manage BOMs
+- Recursive BOM tree generation
+- Multi-level component support
+- Circular dependency detection
+- Cost calculation
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Inventory Voucher
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- Create warehouse vouchers
+- Confirm and cancel vouchers
+- Status management
+- Inventory validation
 
-## Laravel Sponsors
+### Warehouse
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- Product management
+- Warehouse management
+- Stock validation
+- Inventory transactions
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# Architecture
 
-## Contributing
+```
+                HTTP Request
+                      │
+                      ▼
+               Controller Layer
+                      │
+                      ▼
+                 Action Layer
+                      │
+                      ▼
+                Service Layer
+                      │
+                      ▼
+             Repository Layer
+                      │
+                      ▼
+               Eloquent Models
+                      │
+                      ▼
+                  Database
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Cross-cutting components:
 
-## Code of Conduct
+- DTO
+- Events
+- Listeners
+- Enums
+- Custom Exceptions
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+# Project Structure
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```
+app
+├── Actions
+├── DTO
+├── Enums
+├── Events
+├── Exceptions
+├── Http
+├── Listeners
+├── Models
+├── Repositories
+│   ├── Contracts
+│   └── Eloquent
+├── Services
+└── Providers
+```
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# Design Decisions
+
+Instead of placing all business logic inside Controllers or Models, this project separates responsibilities into multiple layers.
+
+This approach improves:
+
+- Maintainability
+- Testability
+- Scalability
+- Readability
+- Separation of Concerns
+
+---
+
+# Why Action Pattern?
+
+Each Action represents **one application use case**.
+
+Examples:
+
+- CreateVoucherAction
+- ConfirmVoucherAction
+- CalculateBomCostAction
+
+### Why?
+
+Without Actions, Controllers become large and difficult to maintain.
+
+Benefits:
+
+- Single Responsibility Principle
+- Reusable use cases
+- Easier Unit Testing
+- Thin Controllers
+
+---
+
+# Why Service Layer?
+
+Some business operations require coordinating multiple repositories and applying business rules.
+
+Instead of placing these rules inside Controllers, they are encapsulated inside Services.
+
+Examples:
+
+- BOM calculations
+- Inventory validation
+- Voucher processing
+
+Benefits:
+
+- Keeps business logic centralized
+- Prevents duplicated code
+- Easier maintenance
+- Independent from HTTP layer
+
+---
+
+# Why Repository Pattern?
+
+Repositories abstract database operations from business logic.
+
+Instead of writing Eloquent queries everywhere:
+
+```
+Controller
+↓
+
+Service
+
+↓
+
+Repository
+
+↓
+
+Database
+```
+
+Benefits:
+
+- Loose coupling
+- Easier testing through mocking
+- Database implementation can change with minimal impact
+- Cleaner business logic
+
+---
+
+# Why DTO (Data Transfer Object)?
+
+DTOs encapsulate validated data before passing it between layers.
+
+Instead of:
+
+```php
+create(
+    $request->name,
+    $request->price,
+    $request->warehouse,
+    ...
+);
+```
+
+We pass
+
+```php
+VoucherData
+```
+
+Benefits:
+
+- Strong typing
+- Cleaner method signatures
+- Easier validation
+- Prevents leaking Request objects into business logic
+
+---
+
+# Why Events & Listeners?
+
+Some operations should happen **after** the main business action.
+
+Example:
+
+Voucher Confirmed
+
+↓
+
+- Write Logs
+- Send Notifications
+- Update Reports
+
+Instead of tightly coupling these operations, Events publish an event and Listeners react to it.
+
+Benefits
+
+- Loose coupling
+- Extensible architecture
+- Easier feature additions
+- Better separation of concerns
+
+---
+
+# Why Dependency Injection?
+
+All dependencies are injected through constructors.
+
+Example:
+
+```
+VoucherService
+
+↓
+
+VoucherRepositoryInterface
+```
+
+instead of
+
+```
+new VoucherRepository()
+```
+
+Benefits
+
+- Easier testing
+- Better flexibility
+- SOLID compliance
+- Inversion of Control (IoC)
+
+---
+
+# SOLID Principles Applied
+
+✔ Single Responsibility Principle
+
+✔ Open/Closed Principle
+
+✔ Liskov Substitution Principle
+
+✔ Interface Segregation Principle
+
+✔ Dependency Inversion Principle
+
+---
+
+# Technologies
+
+- PHP 8+
+- Laravel
+- MySQL
+- Eloquent ORM
+
+---
+
+# Installation
+
+Clone project
+
+```bash
+git clone <repository-url>
+```
+
+Install dependencies
+
+```bash
+composer install
+```
+
+Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Generate application key
+
+```bash
+php artisan key:generate
+```
+
+Run migrations
+
+```bash
+php artisan migrate
+```
+
+Start server
+
+```bash
+php artisan serve
+```
+
+---
+
+# Future Improvements
+
+- CQRS implementation
+- Domain Events
+- Event Sourcing
+- Redis Caching
+- Queue-based notifications
+- API Versioning
+- PHPUnit Integration Tests
+
+---
+
+# License
+
+MIT License
