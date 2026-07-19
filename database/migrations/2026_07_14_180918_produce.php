@@ -67,10 +67,14 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('warehouses');
-        Schema::dropIfExists('products');
-        Schema::dropIfExists('vouchers');
-        Schema::dropIfExists('voucher_items');
+        Schema::disableForeignKeyConstraints();
+
         Schema::dropIfExists('boms');
+        Schema::dropIfExists('voucher_items');
+        Schema::dropIfExists('vouchers');
+        Schema::dropIfExists('products');
+        Schema::dropIfExists('warehouses');
+
+        Schema::enableForeignKeyConstraints();
     }
 };
